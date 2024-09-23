@@ -293,6 +293,63 @@ ms_beta_sim <- ulam(
 
 
 
+#Var samples per tree 
+
+sTrees <- c(3, 5, 7, 10, 15, 20)
+i = 2
+for (i in 1:length(sTrees)){
+
+  n_samp_tree <- sTrees[i]
+  n_trees <- 40
+  tree_sigma_sim <- mean(post$sigma_tree)
+  tree_std <- mean(tree_seas_stats$sd_lodds)
+  ##fixed values
+  post_length <- length(post$theta)
+  tree_offsets <- rnorm(n_trees, mean=0 , sd=tree_sigma_sim )#var ef per tree
+  a_bar <- mean(post$a_bar)
+  round_means <- apply( post$ar , 2 , mean)
+  theta_sim <- mean(post$theta)
+  
+  the_rows <- 1:n_samp_tree
+  tree_offsets <- rnorm(n_trees, mean=0 , sd=tree_sigma_sim ) # per tree offsets, w/ variable sd informed by posterior
+  for (j in 1:max(df$round_num)){
+    for (i in 1:n_trees){
+      fruit_offsets <- rnorm(n=n_samp_tree, mean=0 , sd=tree_std)
+      store <- rbeta2(n=n_samp_tree, prob=logistic(mean(post$a_bar) +
+                                                     tree_offsets[i] + mean(post$ar[,j]) + fruit_offsets) ,
+                      theta = mean(post$theta) )
+      df_2_pop[the_rows,] <- cbind(store , rep(i,n_samp_tree) , rep(j,n_samp_tree))
+      the_rows <- the_rows + n_samp_tree
+    }
+  }
+  
+  #look at simulated data structre
+  str(df_2_pop)
+  #fit model to simulated data
+  ms_beta_sim2 <- ulam(
+    alist(
+      sugar_prop ~ dbeta2( p , theta) ,
+      logit(p) <- a_bar + at[tree_id] + ar[round_num],
+      a_bar ~ dnorm( -1.5,1) ,
+      at[tree_id] ~ dnorm( 0, sigma_tree ),
+      ar[round_num] ~ dnorm( 0, sigma_round ),
+      c(sigma_tree,sigma_round) ~ dexp(1),
+      theta ~ dexp(0.05)
+    ) , data=df_2_pop , chains=4 , #cmdstan = TRUE ,
+    cores=4 , iter=1500)
+  
+  precis(ms_beta_sim2) # overall params
+  plot(precis(ms_beta_sim2 , pars="at" , depth=3)) # offsets of mean tree
+  plot(precis(ms_beta_sim2 , pars="ar" , depth=3)) # offsets of mean round
+  post_sim <- extract.samples(ms_beta_sim2)
+  #two options 
+  plot()
+  
+  
+  
+  
+}
+
 
 
 ####Function to loop through this to change variation per tree 
