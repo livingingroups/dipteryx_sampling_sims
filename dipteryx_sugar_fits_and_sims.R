@@ -1,11 +1,16 @@
 library(janitor)
+
+#https://github.com/rmcelreath/rethinking/issues/174 
+# install.packages(c("mvtnorm","loo","coda"), repos="https://cloud.r-project.org/",dependencies=TRUE)
+# options(repos=c(getOption('repos'), rethinking='http://xcelab.net/R'))
+# install.packages('rethinking',type='source')
 library(rethinking)
 library(RColorBrewer)
 #round color pallete
 round_pal <- brewer.pal(3,"Dark2") # color pallete for rounds
 
 #load and clean data
-df <- read.csv("~/Downloads/SugarAug282024_treeinformation.csv")
+df <- read.csv("SugarAug282024_treeinformation.csv")
 df <- clean_names(df)
 df <- df[complete.cases(df$x_sugar), ]#drop cases with no sugar, there are missing sample numbers
 str(df)
@@ -148,7 +153,8 @@ ms_beta <- ulam(
     ar[round_num] ~ dnorm( 0, sigma_round ),
     c(sigma_tree,sigma_round) ~ dexp(1),
     theta ~ dexp(0.05)
-  ) , data=dlist , chains=4 , cmdstan = TRUE , cores=4 , iter=1500)
+  ) , data=dlist , chains=4 , #cmdstan = TRUE ,
+  cores=4 , iter=1500)
 precis(ms_beta)
 
 ###start with beta
@@ -244,7 +250,8 @@ for (j in 1:max(df$round_num)){
 
 #####below is normaler, but less variation, more traditional data imputation
 
-## init values to vary
+## initial values to vary  ###Kate starts here, above is more cautious 
+
 n_samp_tree <- 20
 n_trees <- 40
 tree_sigma_sim <- mean(post$sigma_tree)
@@ -281,7 +288,19 @@ ms_beta_sim <- ulam(
     ar[round_num] ~ dnorm( 0, sigma_round ),
     c(sigma_tree,sigma_round) ~ dexp(1),
     theta ~ dexp(0.05)
-  ) , data=df_2_pop , chains=4 , cmdstan = TRUE , cores=4 , iter=1500)
+  ) , data=df_2_pop , chains=4 , #cmdstan = TRUE ,
+  cores=4 , iter=1500)
+
+
+
+
+
+####Function to loop through this to change variation per tree 
+#B suggests to start w empirical variation and go up 
+
+varTreeList <- c(kjdkd, lksjdf)
+varSeasonList <- c( )
+
 
 #fit_params <- unlist(as.vector(precis(ms_beta_sim , depth=2)[1:3]), use.names = FALSE)
 #####plot of per simulation validation
@@ -307,6 +326,19 @@ precis(ms_beta_sim) # overall params
 plot(precis(ms_beta_sim , pars="at" , depth=3)) # offsets of mean tree
 plot(precis(ms_beta_sim , pars="ar" , depth=3)) # offsets of mean round
 post_sim <- extract.samples(ms_beta_sim)
+
+
+
+
+###### Write a big loop or function to sample from 
+
+
+#Sample from posteriors to simulate the data then fit models 
+
+
+
+
+
 
 #######SIMULATION OF VISITS
 
@@ -342,7 +374,8 @@ mprobvis_sim <- ulam(
     #at[tree_id] ~ dnorm( 0, sigma_tree ),
     #ar[round_num] ~ dnorm( 0, sigma_round ),
     #c(sigma_tree,sigma_round) ~ dexp(1),
-  ) , data=sim_data , chains=4 , cmdstan = TRUE , cores=4 , iter=3000)
+  ) , data=sim_data , chains=4 , #cmdstan = TRUE ,
+  cores=4 , iter=3000)
 
 post_sim <- extract.samples(mprobvis_sim)
 
@@ -354,6 +387,10 @@ plot(post_sim$beta_s[1:100]~ rep(beta_s_sim,100) , col="red" , xlim=c(-2,2) , yl
 points(post_sim$a_bar[1:100]~ rep(p_visit_logit,100) , col="blue")
 abline(a=0,b=1,lty=3)
 
-round_index <- 
+#round_index <- 
 ## ok, now lets simulate variation across trees
+
+
+
+
 
