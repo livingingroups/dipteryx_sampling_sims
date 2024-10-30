@@ -450,4 +450,5 @@ abline(a=0,b=1,lty=3)
 
 
 
-
+svis <- sim_data$sugar_sim[sim_data$visit == 1]
+sno <- sim_data$sugar_sim[sim_data$visit == 0]
